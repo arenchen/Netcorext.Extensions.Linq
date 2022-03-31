@@ -9,61 +9,41 @@ public static class EnumerableExtension
     public static IEnumerable<TSource> In<TSource, TValue>(this IEnumerable<TSource> source, Expression<Func<TSource, TValue>> member, params TValue[] values)
     {
         if (source == null) throw new ArgumentNullException(nameof(source));
-
         if (member == null) throw new ArgumentNullException(nameof(member));
 
-        var enumerable = source as TSource[] ?? source.ToArray();
-
-        if (!enumerable.Any()) return null;
-
         var p = member.Parameters.Single();
-
         var equals = values.Select(value => (Expression)Expression.Equal(member.Body, Expression.Constant(value, typeof(TValue))));
         var body = equals.Aggregate(Expression.Or);
-
         var predicate = Expression.Lambda<Func<TSource, bool>>(body, p)
                                   .Compile();
 
-        return enumerable.Where(predicate);
+        return source.Where(predicate);
     }
 
     public static IEnumerable<TSource> NotIn<TSource, TValue>(this IEnumerable<TSource> source, Expression<Func<TSource, TValue>> member, params TValue[] values)
     {
         if (source == null) throw new ArgumentNullException(nameof(source));
-
         if (member == null) throw new ArgumentNullException(nameof(member));
 
-        var enumerable = source as TSource[] ?? source.ToArray();
-
-        if (!enumerable.Any()) return null;
-
         var p = member.Parameters.Single();
-
         var equals = values.Select(value => (Expression)Expression.NotEqual(member.Body, Expression.Constant(value, typeof(TValue))));
         var body = equals.Aggregate(Expression.AndAlso);
-
         var predicate = Expression.Lambda<Func<TSource, bool>>(body, p)
                                   .Compile();
 
-        return enumerable.Where(predicate);
+        return source.Where(predicate);
     }
 
     public static IEnumerable<TSource> Like<TSource, TValue>(this IEnumerable<TSource> source, Expression<Func<TSource, TValue>> member, params TValue[] values)
     {
         if (source == null) throw new ArgumentNullException(nameof(source));
-
         if (member == null) throw new ArgumentNullException(nameof(member));
-
         if (typeof(TValue) != typeof(string)) throw new ArgumentException("Must be a string type");
 
-        if (!source.Any()) return null;
-
         var p = member.Parameters.Single();
-
         var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
         var equals = values.Select(value => (Expression)Expression.Call(member.Body, containsMethod, Expression.Constant(value, typeof(TValue))));
         var body = equals.Aggregate((accumulate, equal) => Expression.Or(accumulate, equal));
-
         var predicate = Expression.Lambda<Func<TSource, bool>>(body, p)
                                   .Compile();
 
@@ -73,44 +53,17 @@ public static class EnumerableExtension
     public static IEnumerable<TSource> NotLike<TSource, TValue>(this IEnumerable<TSource> source, Expression<Func<TSource, TValue>> member, params TValue[] values)
     {
         if (source == null) throw new ArgumentNullException(nameof(source));
-
         if (member == null) throw new ArgumentNullException(nameof(member));
-
         if (typeof(TValue) != typeof(string)) throw new ArgumentException("Must be a string type");
 
-        if (!source.Any()) return null;
-
         var p = member.Parameters.Single();
-
         var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
-
-        var equals = values.Select(value =>
-                                       (Expression)Expression.Not(
-                                                                  (Expression)Expression.Call(member.Body, containsMethod, Expression.Constant(value, typeof(TValue)))
-                                                                 ));
-
+        var equals = values.Select(value => (Expression)Expression.Not(Expression.Call(member.Body, containsMethod, Expression.Constant(value, typeof(TValue)))));
         var body = equals.Aggregate((accumulate, equal) => Expression.And(accumulate, equal));
-
         var predicate = Expression.Lambda<Func<TSource, bool>>(body, p)
                                   .Compile();
 
         return source.Where(predicate);
-    }
-
-    public static IEnumerable<TSource> NotWhere<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
-    {
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (predicate == null) throw new ArgumentNullException(nameof(predicate));
-
-        using (var e = source.GetEnumerator())
-        {
-            while (e.MoveNext())
-            {
-                var element = e.Current;
-
-                if (!predicate(element)) yield return element;
-            }
-        }
     }
 
     public static IEnumerable<TResult> LeftJoin<TOuter, TInner, TKey, TResult>(this IEnumerable<TOuter> outer, IEnumerable<TInner> inner, Func<TOuter, TKey> outerKeySelector, Func<TInner, TKey> innerKeySelector, Func<TOuter, TInner, TResult> resultSelector, Func<TOuter, TInner> defaultValue = null)
