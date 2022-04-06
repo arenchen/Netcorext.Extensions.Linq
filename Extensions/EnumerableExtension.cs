@@ -10,6 +10,7 @@ public static class EnumerableExtension
     {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (member == null) throw new ArgumentNullException(nameof(member));
+        if (!values.Any()) return source;
 
         var p = member.Parameters.Single();
         var equals = values.Select(value => (Expression)Expression.Equal(member.Body, Expression.Constant(value, typeof(TValue))));
@@ -24,6 +25,7 @@ public static class EnumerableExtension
     {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (member == null) throw new ArgumentNullException(nameof(member));
+        if (!values.Any()) return source;
 
         var p = member.Parameters.Single();
         var equals = values.Select(value => (Expression)Expression.NotEqual(member.Body, Expression.Constant(value, typeof(TValue))));
@@ -39,6 +41,7 @@ public static class EnumerableExtension
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (member == null) throw new ArgumentNullException(nameof(member));
         if (typeof(TValue) != typeof(string)) throw new ArgumentException("Must be a string type");
+        if (!values.Any()) return source;
 
         var p = member.Parameters.Single();
         var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
@@ -55,6 +58,7 @@ public static class EnumerableExtension
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (member == null) throw new ArgumentNullException(nameof(member));
         if (typeof(TValue) != typeof(string)) throw new ArgumentException("Must be a string type");
+        if (!values.Any()) return source;
 
         var p = member.Parameters.Single();
         var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
@@ -68,34 +72,30 @@ public static class EnumerableExtension
 
     public static IEnumerable<TResult> LeftJoin<TOuter, TInner, TKey, TResult>(this IEnumerable<TOuter> outer, IEnumerable<TInner> inner, Func<TOuter, TKey> outerKeySelector, Func<TInner, TKey> innerKeySelector, Func<TOuter, TInner, TResult> resultSelector, Func<TOuter, TInner> defaultValue = null)
     {
+        if (outer == null) throw new ArgumentNullException(nameof(outer));
+        if (inner == null) throw new ArgumentNullException(nameof(inner));
+        if (outerKeySelector == null) throw new ArgumentNullException(nameof(outerKeySelector));
+        if (innerKeySelector == null) throw new ArgumentNullException(nameof(innerKeySelector));
+        if (resultSelector == null) throw new ArgumentNullException(nameof(resultSelector));
+
         return from o in outer
                join i in inner on outerKeySelector(o) equals innerKeySelector(i) into g
                from i in g.DefaultIfEmpty(defaultValue == null ? default : defaultValue.Invoke(o))
                select resultSelector(o, i);
-
-        // var result = outer.GroupJoin(inner ?? new TInner[0],
-        //                              outerKeySelector, innerKeySelector,
-        //                              (o, i) => new { Outer = o, Inners = i })
-        //                   .SelectMany(t => t.Inners.DefaultIfEmpty(defaultValue == null ? default(TInner) : defaultValue.Invoke(t.Outer)), (g, i) => new { Outer = g.Outer, Inner = i })
-        //                   .Select(t => resultSelector(t.Outer, t.Inner));
-        //
-        // return result;
     }
 
     public static IEnumerable<TResult> RightJoin<TOuter, TInner, TKey, TResult>(this IEnumerable<TOuter> outer, IEnumerable<TInner> inner, Func<TOuter, TKey> outerKeySelector, Func<TInner, TKey> innerKeySelector, Func<TOuter, TInner, TResult> resultSelector, Func<TInner, TOuter> defaultValue = null)
     {
+        if (outer == null) throw new ArgumentNullException(nameof(outer));
+        if (inner == null) throw new ArgumentNullException(nameof(inner));
+        if (outerKeySelector == null) throw new ArgumentNullException(nameof(outerKeySelector));
+        if (innerKeySelector == null) throw new ArgumentNullException(nameof(innerKeySelector));
+        if (resultSelector == null) throw new ArgumentNullException(nameof(resultSelector));
+
         return from i in inner
                join o in outer on innerKeySelector(i) equals outerKeySelector(o) into g
                from o in g.DefaultIfEmpty(defaultValue == null ? default : defaultValue.Invoke(i))
                select resultSelector(o, i);
-
-        // var result = inner.GroupJoin(outer ?? new TOuter[0],
-        //                              innerKeySelector, outerKeySelector,
-        //                              (o, i) => new { Outer = o, Inners = i })
-        //                   .SelectMany(t => t.Inners.DefaultIfEmpty(defaultValue == null ? default(TOuter) : defaultValue.Invoke(t.Outer)), (g, i) => new { Outer = g.Outer, Inner = i })
-        //                   .Select(t => resultSelector(t.Inner, t.Outer));
-        //
-        // return result;
     }
 
     #endregion

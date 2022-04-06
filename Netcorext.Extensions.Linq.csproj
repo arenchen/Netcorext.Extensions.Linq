@@ -23,8 +23,8 @@
 
   <Target Name="IncludeProjectReferences" DependsOnTargets="ResolveReferences">
     <ItemGroup>
-      <IncludeBuildOutput/>
-      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths-&gt;WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))"/>
+      <IncludeBuildOutput />
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths-&gt;WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))" />
     </ItemGroup>
   </Target>
 
