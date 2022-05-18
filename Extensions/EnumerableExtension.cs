@@ -10,11 +10,13 @@ public static class EnumerableExtension
     {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (member == null) throw new ArgumentNullException(nameof(member));
+
         if (!values.Any()) return source;
 
         var p = member.Parameters.Single();
         var equals = values.Select(value => (Expression)Expression.Equal(member.Body, Expression.Constant(value, typeof(TValue))));
         var body = equals.Aggregate(Expression.Or);
+
         var predicate = Expression.Lambda<Func<TSource, bool>>(body, p)
                                   .Compile();
 
@@ -25,11 +27,13 @@ public static class EnumerableExtension
     {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (member == null) throw new ArgumentNullException(nameof(member));
+
         if (!values.Any()) return source;
 
         var p = member.Parameters.Single();
         var equals = values.Select(value => (Expression)Expression.NotEqual(member.Body, Expression.Constant(value, typeof(TValue))));
         var body = equals.Aggregate(Expression.AndAlso);
+
         var predicate = Expression.Lambda<Func<TSource, bool>>(body, p)
                                   .Compile();
 
@@ -41,12 +45,14 @@ public static class EnumerableExtension
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (member == null) throw new ArgumentNullException(nameof(member));
         if (typeof(TValue) != typeof(string)) throw new ArgumentException("Must be a string type");
+
         if (!values.Any()) return source;
 
         var p = member.Parameters.Single();
         var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
         var equals = values.Select(value => (Expression)Expression.Call(member.Body, containsMethod, Expression.Constant(value, typeof(TValue))));
         var body = equals.Aggregate((accumulate, equal) => Expression.Or(accumulate, equal));
+
         var predicate = Expression.Lambda<Func<TSource, bool>>(body, p)
                                   .Compile();
 
@@ -58,12 +64,14 @@ public static class EnumerableExtension
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (member == null) throw new ArgumentNullException(nameof(member));
         if (typeof(TValue) != typeof(string)) throw new ArgumentException("Must be a string type");
+
         if (!values.Any()) return source;
 
         var p = member.Parameters.Single();
         var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
         var equals = values.Select(value => (Expression)Expression.Not(Expression.Call(member.Body, containsMethod, Expression.Constant(value, typeof(TValue)))));
         var body = equals.Aggregate((accumulate, equal) => Expression.And(accumulate, equal));
+
         var predicate = Expression.Lambda<Func<TSource, bool>>(body, p)
                                   .Compile();
 
@@ -138,7 +146,6 @@ public static class EnumerableExtension
         return (r1, r2);
     }
 
-
     public static (IEnumerable<TSource> First, IEnumerable<TSource> Second) ExceptBoth<TSource>(this IEnumerable<TSource> first, IEnumerable<TSource> second)
     {
         var a = first as TSource[] ?? first.ToArray();
@@ -172,7 +179,6 @@ public static class EnumerableExtension
 
         return (r1, r2);
     }
-
 
     public static (IEnumerable<TSource> FirstExcept, IEnumerable<TSource> SecondExcept, IEnumerable<TSource> FirstIntersect, IEnumerable<TSource> SecondIntersect) IntersectExcept<TSource>(this IEnumerable<TSource> first, IEnumerable<TSource> second)
     {
@@ -267,6 +273,54 @@ public static class EnumerableExtension
                 newSet.Add(keySelector(item));
             }
         }
+    }
+
+    #endregion
+
+    #region Merge
+
+    public static IEnumerable<TSource> Merge<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector, bool overwrite = false) where TKey : notnull
+    {
+        var result = new Dictionary<TKey, TSource>(first.ToDictionary(keySelector, t => t));
+
+        foreach (var item in second)
+        {
+            var key = keySelector(item);
+
+            if (!result.ContainsKey(key))
+            {
+                result.Add(key, item);
+
+                continue;
+            }
+
+            if (!overwrite) continue;
+
+            result[key] = item;
+        }
+
+        return result.Values;
+    }
+
+    public static IEnumerable<TSource> Merge<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector, Action<TSource, TSource>? updater) where TKey : notnull
+    {
+        var result = new Dictionary<TKey, TSource>(first.ToDictionary(keySelector, t => t));
+
+        foreach (var item in second)
+        {
+            var key = keySelector(item);
+
+            if (!result.ContainsKey(key))
+            {
+                result.Add(key, item);
+
+                continue;
+            }
+
+            updater?.Invoke(result[key], item);
+        }
+
+        return result.Values;
     }
 
     #endregion
