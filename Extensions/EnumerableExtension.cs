@@ -302,7 +302,7 @@ public static class EnumerableExtension
         return result.Values;
     }
 
-    public static IEnumerable<TSource> Merge<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector, Action<TSource, TSource>? updater) where TKey : notnull
+    public static IEnumerable<TSource> Merge<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector, Func<TSource, TSource, TSource>? updater) where TKey : notnull
     {
         var result = new Dictionary<TKey, TSource>(first.ToDictionary(keySelector, t => t));
 
@@ -317,7 +317,8 @@ public static class EnumerableExtension
                 continue;
             }
 
-            updater?.Invoke(result[key], item);
+            if (updater != null)
+                result[key] = updater.Invoke(result[key], item);
         }
 
         return result.Values;
