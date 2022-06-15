@@ -4,6 +4,34 @@ namespace Netcorext.Extensions.Linq;
 
 public static class EnumerableExtension
 {
+    #region Iterate
+
+    public static void For<TSource>(this IEnumerable<TSource> source, Action<long, TSource> process)
+    {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        if (process == null) throw new ArgumentNullException(nameof(process));
+
+        var enumerable = source as TSource[] ?? source.ToArray();
+
+        for (var i = 0; i < enumerable.Length; i++)
+        {
+            process?.Invoke(i, enumerable[i]);
+        }
+    }
+    
+    public static void ForEach<TSource>(this IEnumerable<TSource> source, Action<TSource> process)
+    {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        if (process == null) throw new ArgumentNullException(nameof(process));
+        
+        foreach (var src in source)
+        {
+            process?.Invoke(src);
+        }
+    }
+
+    #endregion
+    
     #region Join
 
     public static IEnumerable<TSource> In<TSource, TValue>(this IEnumerable<TSource> source, Expression<Func<TSource, TValue>> member, params TValue[] values)
