@@ -4,6 +4,20 @@ namespace Netcorext.Extensions.Linq;
 
 public static class QueryableExtension
 {
+    public static bool AllExists<TSource, TValue>(this IQueryable<TSource> source, Expression<Func<TSource, TValue>> member, params TValue[] values)
+    {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        if (member == null) throw new ArgumentNullException(nameof(member));
+        if (!values.Any()) return false;
+
+        var p = member.Parameters.Single();
+        var equals = values.Select(value => (Expression)Expression.Equal(member.Body, Expression.Constant(value, typeof(TValue))));
+        var body = equals.Aggregate(Expression.Or);
+        var predicate = Expression.Lambda<Func<TSource, bool>>(body, p);
+
+        return source.Count(predicate) == values.Length;
+    }
+
     public static IQueryable<TSource> In<TSource, TValue>(this IQueryable<TSource> source, Expression<Func<TSource, TValue>> member, params TValue[] values)
     {
         if (source == null) throw new ArgumentNullException(nameof(source));
