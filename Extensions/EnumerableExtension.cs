@@ -74,6 +74,9 @@ public static class EnumerableExtension
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (member == null) throw new ArgumentNullException(nameof(member));
 
+        values = values.Distinct()
+                       .ToArray();
+        
         if (!values.Any()) return false;
 
         var p = member.Parameters.Single();
