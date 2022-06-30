@@ -44,7 +44,7 @@ public static class ExpressionExtension
         return lambda;
     }
 
-    private static Expression Replace(this Expression expression, Expression searchEx, Expression replaceEx)
+    public static Expression Replace(this Expression expression, Expression searchEx, Expression replaceEx)
     {
         if (expression == null) throw new ArgumentNullException(nameof(expression));
         if (searchEx == null) throw new ArgumentNullException(nameof(searchEx));
