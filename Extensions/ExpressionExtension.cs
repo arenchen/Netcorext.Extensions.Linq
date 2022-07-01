@@ -5,6 +5,26 @@ namespace Netcorext.Extensions.Linq;
 
 public static class ExpressionExtension
 {
+    public static Expression<Func<TSource, bool>> Equal<TSource>(this Expression<Func<TSource, bool>> expr1, Expression<Func<TSource, bool>> expr2)
+    {
+        if (expr1 == null) throw new ArgumentNullException(nameof(expr1));
+        if (expr2 == null) throw new ArgumentNullException(nameof(expr2));
+
+        var secondBody = expr2.Body.Replace(expr2.Parameters[0], expr1.Parameters[0]);
+
+        return Expression.Lambda<Func<TSource, bool>>(Expression.Equal(expr1.Body, secondBody), expr1.Parameters);
+    }
+    
+    public static Expression<Func<TSource, bool>> NotEqual<TSource>(this Expression<Func<TSource, bool>> expr1, Expression<Func<TSource, bool>> expr2)
+    {
+        if (expr1 == null) throw new ArgumentNullException(nameof(expr1));
+        if (expr2 == null) throw new ArgumentNullException(nameof(expr2));
+
+        var secondBody = expr2.Body.Replace(expr2.Parameters[0], expr1.Parameters[0]);
+
+        return Expression.Lambda<Func<TSource, bool>>(Expression.NotEqual(expr1.Body, secondBody), expr1.Parameters);
+    }
+    
     public static Expression<Func<TSource, bool>> And<TSource>(this Expression<Func<TSource, bool>> expr1, Expression<Func<TSource, bool>> expr2)
     {
         if (expr1 == null) throw new ArgumentNullException(nameof(expr1));
