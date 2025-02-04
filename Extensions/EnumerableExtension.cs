@@ -76,7 +76,7 @@ public static class EnumerableExtension
 
         values = values.Distinct()
                        .ToArray();
-        
+
         if (!values.Any()) return false;
 
         var p = member.Parameters.Single();
@@ -88,7 +88,7 @@ public static class EnumerableExtension
 
         return source.Count(predicate) == values.Length;
     }
-    
+
     public static IEnumerable<TSource> In<TSource, TValue>(this IEnumerable<TSource> source, Expression<Func<TSource, TValue>> member, params TValue[] values)
     {
         if (source == null) throw new ArgumentNullException(nameof(source));
@@ -193,49 +193,13 @@ public static class EnumerableExtension
 
     #region Intersect、Except
 
-    public static (IEnumerable<TSource> First, IEnumerable<TSource> Second) IntersectBoth<TSource>(this IEnumerable<TSource> first, IEnumerable<TSource> second)
-    {
-        var a = first as TSource[] ?? first.ToArray();
-        var b = second as TSource[] ?? second.ToArray();
-
-        var r = a.Join(b, t => t, t => t, (arg1, arg2) => (arg1, arg2)).ToArray();
-        var r1 = r.Select(t => t.arg1);
-        var r2 = r.Select(t => t.arg2);
-
-        return (r1, r2);
-    }
-
-    public static (IEnumerable<TSource> First, IEnumerable<TSource> Second) IntersectBoth<TSource>(this IEnumerable<TSource> first, params TSource[] second)
-    {
-        var a = first as TSource[] ?? first.ToArray();
-        var b = second;
-
-        var r = a.Join(b, t => t, t => t, (arg1, arg2) => (arg1, arg2)).ToArray();
-        var r1 = r.Select(t => t.arg1);
-        var r2 = r.Select(t => t.arg2);
-
-        return (r1, r2);
-    }
-
-    public static (IEnumerable<TSource> First, IEnumerable<TSource> Second) IntersectBoth<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector)
-    {
-        var a = first as TSource[] ?? first.ToArray();
-        var b = second as TSource[] ?? second.ToArray();
-
-        var r = a.Join(b, keySelector, keySelector, (arg1, arg2) => (arg1, arg2)).ToArray();
-        var r1 = r.Select(t => t.arg1);
-        var r2 = r.Select(t => t.arg2);
-
-        return (r1, r2);
-    }
-
     public static (IEnumerable<TSource> First, IEnumerable<TSource> Second) ExceptBoth<TSource>(this IEnumerable<TSource> first, IEnumerable<TSource> second)
     {
         var a = first as TSource[] ?? first.ToArray();
         var b = second as TSource[] ?? second.ToArray();
 
-        var r1 = ExceptIterator(a, b);
-        var r2 = ExceptIterator(b, a);
+        var r1 = ExceptIterator(a, b, null);
+        var r2 = ExceptIterator(b, a, null);
 
         return (r1, r2);
     }
@@ -245,8 +209,8 @@ public static class EnumerableExtension
         var a = first as TSource[] ?? first.ToArray();
         var b = second;
 
-        var r1 = ExceptIterator(a, b);
-        var r2 = ExceptIterator(b, a);
+        var r1 = ExceptIterator(a, b, null);
+        var r2 = ExceptIterator(b, a, null);
 
         return (r1, r2);
     }
@@ -256,104 +220,78 @@ public static class EnumerableExtension
         var a = first as TSource[] ?? first.ToArray();
         var b = second as TSource[] ?? second.ToArray();
 
-        var r1 = ExceptIterator(a, b, keySelector);
-        var r2 = ExceptIterator(b, a, keySelector);
+        var r1 = ExceptByIterator(a, b, keySelector, null);
+        var r2 = ExceptByIterator(b, a, keySelector, null);
 
 
         return (r1, r2);
     }
 
-    public static (IEnumerable<TSource> FirstExcept, IEnumerable<TSource> SecondExcept, IEnumerable<TSource> FirstIntersect, IEnumerable<TSource> SecondIntersect) IntersectExcept<TSource>(this IEnumerable<TSource> first, IEnumerable<TSource> second)
+    public static (IEnumerable<TSource> Intersect, IEnumerable<TSource> FirstExcept, IEnumerable<TSource> SecondExcept) IntersectExcept<TSource>(this IEnumerable<TSource> first, IEnumerable<TSource> second)
     {
-        var (exceptFirst, exceptSecond) = ExceptBoth(first, second);
+        var a = first as TSource[] ?? first.ToArray();
+        var b = second as TSource[] ?? second.ToArray();
+        var intersect = a.Intersect(b);
+        var (exceptFirst, exceptSecond) = ExceptBoth(a, b);
 
-        var (intersectFirst, intersectSecond) = IntersectBoth(first, second);
-
-        return (exceptFirst, exceptSecond, intersectFirst, intersectSecond);
+        return (intersect, exceptFirst, exceptSecond);
     }
 
-    public static (IEnumerable<TSource> FirstExcept, IEnumerable<TSource> SecondExcept, IEnumerable<TSource> FirstIntersect, IEnumerable<TSource> SecondIntersect) IntersectExcept<TSource>(this IEnumerable<TSource> first, params TSource[]? second)
+    public static (IEnumerable<TSource> Intersect, IEnumerable<TSource> FirstExcept, IEnumerable<TSource> SecondExcept) IntersectExcept<TSource>(this IEnumerable<TSource> first, params TSource[] second)
     {
-        var (exceptFirst, exceptSecond) = ExceptBoth(first, second);
+        var a = first as TSource[] ?? first.ToArray();
+        var b = second;
+        var intersect = a.Intersect(b);
+        var (exceptFirst, exceptSecond) = ExceptBoth(a, b);
 
-        var (intersectFirst, intersectSecond) = IntersectBoth(first, second);
-
-        return (exceptFirst, exceptSecond, intersectFirst, intersectSecond);
+        return (intersect, exceptFirst, exceptSecond);
     }
 
-    public static (IEnumerable<TSource> FirstExcept, IEnumerable<TSource> SecondExcept, IEnumerable<TSource> FirstIntersect, IEnumerable<TSource> SecondIntersect) IntersectExcept<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector)
+    public static (IEnumerable<TSource> Intersect, IEnumerable<TSource> FirstExcept, IEnumerable<TSource> SecondExcept) IntersectExcept<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector)
     {
-        var (exceptFirst, exceptSecond) = ExceptBoth(first, second, keySelector);
+        var a = first as TSource[] ?? first.ToArray();
+        var b = second as TSource[] ?? second.ToArray();
+        var intersect = IntersectByIterator(a, b, keySelector, null);
+        var (exceptFirst, exceptSecond) = ExceptBoth(a, b, keySelector);
 
-        var (intersectFirst, intersectSecond) = IntersectBoth(first, second, keySelector);
-
-        return (exceptFirst, exceptSecond, intersectFirst, intersectSecond);
+        return (intersect, exceptFirst, exceptSecond);
     }
 
-    private static IEnumerable<TSource> ExceptIterator<TSource>(IEnumerable<TSource> first, IEnumerable<TSource> second)
+    private static IEnumerable<TSource> IntersectByIterator<TSource, TKey>(IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector, IEqualityComparer<TKey>? comparer)
     {
-        var set = new HashSet<TSource>(second);
-        var newSet = new HashSet<TSource>();
+        var set = new HashSet<TKey>(second.Select(keySelector), comparer);
 
-        foreach (var item in first)
+        foreach (TSource element in first)
         {
-            if (!set.Add(item) && !newSet.Contains(item)) continue;
-
-            newSet.Add(item);
-
-            yield return item;
-        }
-    }
-
-    private static IEnumerable<TSource> ExceptIterator<TSource, TKey>(IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector)
-    {
-        var set = new HashSet<TKey>(second.Select(keySelector));
-        var newSet = new HashSet<TKey>();
-
-        foreach (var item in first)
-        {
-            var key = keySelector(item);
-
-            if (!set.Add(key) && !newSet.Contains(key)) continue;
-
-            newSet.Add(key);
-
-            yield return item;
-        }
-    }
-
-    private static IEnumerable<TSource> IntersectIterator<TSource>(IEnumerable<TSource> first, IEnumerable<TSource> second)
-    {
-        var set = new HashSet<TSource>(second);
-        var newSet = new HashSet<TSource>();
-
-        foreach (var item in first)
-        {
-            if (!set.Add(item) && !newSet.Contains(item))
+            if (set.Remove(keySelector(element)))
             {
-                yield return item;
-            }
-            else
-            {
-                newSet.Add(item);
+                yield return element;
             }
         }
     }
 
-    private static IEnumerable<TSource> IntersectIterator<TSource, TKey>(IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector)
+    private static IEnumerable<TSource> ExceptIterator<TSource>(IEnumerable<TSource> first, IEnumerable<TSource> second, IEqualityComparer<TSource>? comparer)
     {
-        var set = new HashSet<TKey>(second.Select(keySelector));
-        var newSet = new HashSet<TKey>();
+        var set = new HashSet<TSource>(second, comparer);
 
-        foreach (var item in first)
+        foreach (TSource element in first)
         {
-            if (!set.Add(keySelector(item)) && !newSet.Contains(keySelector(item)))
+            if (set.Add(element))
             {
-                yield return item;
+                yield return element;
             }
-            else
+        }
+    }
+
+    private static IEnumerable<TSource> ExceptByIterator<TSource, TKey>(IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector, IEqualityComparer<TKey>? comparer)
+    {
+        var set = new HashSet<TKey>(second.Select(keySelector), comparer);
+
+        foreach (TSource element in first)
+        {
+            if (set.Add(keySelector(element)))
             {
-                newSet.Add(keySelector(item));
+                yield return element;
             }
         }
     }
