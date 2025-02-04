@@ -227,7 +227,39 @@ public static class EnumerableExtension
         return (r1, r2);
     }
 
-    public static (IEnumerable<TSource> Intersect, IEnumerable<TSource> FirstExcept, IEnumerable<TSource> SecondExcept) IntersectExcept<TSource>(this IEnumerable<TSource> first, IEnumerable<TSource> second)
+    public static (IEnumerable<TSource> Intersect, IEnumerable<TSource> Except) IntersectExcept<TSource>(this IEnumerable<TSource> first, IEnumerable<TSource> second)
+    {
+        var a = first as TSource[] ?? first.ToArray();
+        var b = second as TSource[] ?? second.ToArray();
+        var intersect = a.Intersect(b);
+        var except = a.Except(b);
+
+        return (intersect, except);
+    }
+
+    public static (IEnumerable<TSource> Intersect, IEnumerable<TSource> Except) IntersectExcept<TSource>(this IEnumerable<TSource> first, params TSource[] second)
+    {
+        var a = first as TSource[] ?? first.ToArray();
+        var b = second;
+        var intersect = a.Intersect(b);
+        var except = a.Except(b);
+
+        return (intersect, except);
+    }
+
+    public static (IEnumerable<TSource> Intersect, IEnumerable<TSource> Except) IntersectExcept<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector)
+    {
+        var a = first as TSource[] ?? first.ToArray();
+        var b = second as TSource[] ?? second.ToArray();
+        var intersect = IntersectByIterator(a, b, keySelector, null);
+        var except = ExceptByIterator(a, b, keySelector, null);
+
+        return (intersect, except);
+    }
+
+
+
+    public static (IEnumerable<TSource> Intersect, IEnumerable<TSource> FirstExcept, IEnumerable<TSource> SecondExcept) IntersectExceptBoth<TSource>(this IEnumerable<TSource> first, IEnumerable<TSource> second)
     {
         var a = first as TSource[] ?? first.ToArray();
         var b = second as TSource[] ?? second.ToArray();
@@ -237,7 +269,7 @@ public static class EnumerableExtension
         return (intersect, exceptFirst, exceptSecond);
     }
 
-    public static (IEnumerable<TSource> Intersect, IEnumerable<TSource> FirstExcept, IEnumerable<TSource> SecondExcept) IntersectExcept<TSource>(this IEnumerable<TSource> first, params TSource[] second)
+    public static (IEnumerable<TSource> Intersect, IEnumerable<TSource> FirstExcept, IEnumerable<TSource> SecondExcept) IntersectExceptBoth<TSource>(this IEnumerable<TSource> first, params TSource[] second)
     {
         var a = first as TSource[] ?? first.ToArray();
         var b = second;
@@ -247,7 +279,7 @@ public static class EnumerableExtension
         return (intersect, exceptFirst, exceptSecond);
     }
 
-    public static (IEnumerable<TSource> Intersect, IEnumerable<TSource> FirstExcept, IEnumerable<TSource> SecondExcept) IntersectExcept<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector)
+    public static (IEnumerable<TSource> Intersect, IEnumerable<TSource> FirstExcept, IEnumerable<TSource> SecondExcept) IntersectExceptBoth<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector)
     {
         var a = first as TSource[] ?? first.ToArray();
         var b = second as TSource[] ?? second.ToArray();
@@ -256,6 +288,8 @@ public static class EnumerableExtension
 
         return (intersect, exceptFirst, exceptSecond);
     }
+
+
 
     private static IEnumerable<TSource> IntersectByIterator<TSource, TKey>(IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector, IEqualityComparer<TKey>? comparer)
     {
